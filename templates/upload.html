@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Notice - Kiosk</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding-top: 50px; margin: 0; }
+        .form-container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #666; font-weight: bold; }
+        input[type="text"], input[type="number"], input[type="datetime-local"], input[type="file"] { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-submit { width: 100%; padding: 0.75rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>Upload New Notice</h2>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div style="color: red; margin-bottom: 15px;">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('admin.upload') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Notice Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="file">Media File (Image/Video)</label>
+            <input type="file" id="file" name="file" accept="image/png, image/jpeg, video/mp4" required>
+        </div>
+
+        <div class="form-group">
+            <label for="duration">Display Duration (Seconds)</label>
+            <input type="number" id="duration" name="duration" value="10" min="1" required>
+        </div>
+
+        <div class="form-group">
+            <label for="priority">Priority (Higher = more frequent)</label>
+            <input type="number" id="priority" name="priority" value="1" min="1" required>
+        </div>
+
+        <div class="form-group">
+            <label for="valid_from">Valid From</label>
+            <input type="datetime-local" id="valid_from" name="valid_from" required>
+        </div>
+
+        <div class="form-group">
+            <label for="valid_until">Valid Until</label>
+            <input type="datetime-local" id="valid_until" name="valid_until" required>
+        </div>
+
+        <button type="submit" class="btn-submit">Upload and Save</button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-cancel">Cancel and Return</a>
+    </form>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+
+# Database
+kiosk.db
+*.sqlite3
+
+# Uploaded Media
+media/
+
+# Environment Variables (for later)
+.env
