@@ -1,74 +1,163 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Notice Board Kiosk</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #0056b3; color: white; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; }
-        .btn { padding: 8px 12px; background: white; color: #0056b3; text-decoration: none; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; }
-        .btn-danger { background: #dc3545; color: white; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
-        .flash-messages { color: green; margin-bottom: 15px; font-weight: bold; }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
 
-    <div class="header">
-        <h2>Kiosk Admin Dashboard</h2>
-        <div>
-            <a href="{{ url_for('admin.upload') }}" class="btn">Upload New Notice</a>
-            <a href="{{ url_for('auth.logout') }}" class="btn" style="background: #6c757d; color: white; margin-left: 10px;">Logout</a>
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+{# ================================================================
+   SUMMARY CARDS ROW
+   Four cards showing the count of notices in each state.
+   notice_status() is passed from the admin.dashboard route.
+================================================================ #}
+<div class="row g-4 mt-1">
+
+    {# Total notices card #}
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-card-total h-100">
+            <div class="stat-card-icon">
+                <i class="bi bi-collection-fill"></i>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-card-value">{{ total }}</div>
+                <div class="stat-card-label">Total Notices</div>
+            </div>
         </div>
     </div>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash-messages">
-          {% for message in messages %}
-            <p>{{ message }}</p>
-          {% endfor %}
+    {# Active notices card — green colour in CSS #}
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-card-active h-100">
+            <div class="stat-card-icon">
+                <i class="bi bi-broadcast"></i>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-card-value">{{ active_count }}</div>
+                <div class="stat-card-label">Active Now</div>
+            </div>
         </div>
-      {% endif %}
-    {% endwith %}
+    </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Filename</th>
-                <th>Duration (s)</th>
-                <th>Priority</th>
-                <th>Valid Until</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for notice in notices %}
-            <tr>
-                <td>{{ notice.id }}</td>
-                <td>{{ notice.title }}</td>
-                <td>{{ notice.filename }}</td>
-                <td>{{ notice.duration }}</td>
-                <td>{{ notice.priority }}</td>
-                <td>{{ notice.valid_until.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                    <form action="{{ url_for('admin.delete', id=notice.id) }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this notice?');">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" style="text-align: center;">No notices uploaded yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {# Scheduled notices card — blue colour in CSS #}
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-card-scheduled h-100">
+            <div class="stat-card-icon">
+                <i class="bi bi-calendar-event"></i>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-card-value">{{ scheduled_count }}</div>
+                <div class="stat-card-label">Scheduled</div>
+            </div>
+        </div>
+    </div>
 
-</body>
-</html>
+    {# Expired notices card — muted colour in CSS #}
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-card-expired h-100">
+            <div class="stat-card-icon">
+                <i class="bi bi-archive"></i>
+            </div>
+            <div class="stat-card-body">
+                <div class="stat-card-value">{{ expired_count }}</div>
+                <div class="stat-card-label">Expired</div>
+            </div>
+        </div>
+    </div>
+
+</div>{# end .row (cards) #}
+
+
+{# ================================================================
+   ACTION BUTTONS
+================================================================ #}
+<div class="d-flex gap-2 mt-4 mb-3">
+    <a href="{{ url_for('admin.upload') }}" class="btn btn-primary" id="btn-quick-upload">
+        <i class="bi bi-cloud-upload me-1"></i> Upload New Notice
+    </a>
+    <a href="{{ url_for('admin.notices') }}" class="btn btn-outline-secondary" id="btn-view-all">
+        <i class="bi bi-grid me-1"></i> View All Notices
+    </a>
+</div>
+
+
+{# ================================================================
+   RECENT ACTIVITY TABLE
+   Shows the 5 most recently uploaded notices.
+   'recent' and 'notice_status' are both passed from the route.
+================================================================ #}
+<div class="card mt-2">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+        <a href="{{ url_for('admin.notices') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Priority</th>
+                        <th>Valid Until</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notice in recent %}
+                    {# Compute the status string for this notice using the helper passed from the route #}
+                    {% set status = notice_status(notice) %}
+                    <tr>
+                        <td class="fw-medium">{{ notice.title }}</td>
+                        <td>
+                            {# Show a different icon depending on whether the file is an image or video #}
+                            {% if 'image' in notice.content_type %}
+                                <i class="bi bi-image text-primary me-1"></i>Image
+                            {% else %}
+                                <i class="bi bi-film text-danger me-1"></i>Video
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ notice.priority }}</span></td>
+                        <td>{{ notice.valid_until.strftime('%d %b %Y %H:%M') }}</td>
+                        <td>
+                            {# Status badge — colour is determined by the status string #}
+                            {% if notice.status == 'draft' %}
+                                <span class="badge bg-secondary text-dark border">Draft</span>
+                            {% elif status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif status == 'scheduled' %}
+                                <span class="badge bg-primary">Scheduled</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Expired</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.edit', id=notice.id) }}"
+                               class="btn btn-sm btn-outline-primary me-1" id="btn-edit-{{ notice.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {# Delete uses a POST form to prevent accidental deletion via URL visit #}
+                            <form action="{{ url_for('admin.delete', id=notice.id) }}"
+                                  method="POST" class="d-inline confirm-delete-form">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        id="btn-del-{{ notice.id }}"
+                                        data-notice-title="{{ notice.title }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    {# This block renders when the 'recent' list is empty #}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            No notices uploaded yet. <a href="{{ url_for('admin.upload') }}">Upload one now.</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,70 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Notice - Kiosk</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding-top: 50px; margin: 0; }
-        .form-container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
-        h2 { text-align: center; color: #333; margin-top: 0; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; color: #666; font-weight: bold; }
-        input[type="text"], input[type="number"], input[type="datetime-local"], input[type="file"] { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-submit { width: 100%; padding: 0.75rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
-        .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
 
-<div class="form-container">
-    <h2>Upload New Notice</h2>
-    
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div style="color: red; margin-bottom: 15px;">
-          {% for message in messages %}
-            <p>{{ message }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+{% block title %}Upload Notice{% endblock %}
+{% block page_title %}Upload New Notice{% endblock %}
 
-    <form method="POST" action="{{ url_for('admin.upload') }}" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="title">Notice Title</label>
-            <input type="text" id="title" name="title" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="file">Media File (Image/Video)</label>
-            <input type="file" id="file" name="file" accept="image/png, image/jpeg, video/mp4" required>
+{% block content %}
+<div class="row mt-3 justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload Media Notice</h5>
+            </div>
+            <div class="card-body">
+
+                <form method="POST"
+                      action="{{ url_for('admin.upload') }}"
+                      enctype="multipart/form-data"
+                      id="upload-form"
+                      novalidate>
+
+                    {# ---- Notice Title ---- #}
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-medium">Notice Title <span class="text-danger">*</span></label>
+                        <input type="text"
+                               class="form-control"
+                               id="title"
+                               name="title"
+                               placeholder="e.g. Semester Exam Timetable 2025"
+                               required>
+                        <div class="form-text">A short, descriptive name shown in the CMS table.</div>
+                    </div>
+
+                    {# ---- File Upload with preview ---- #}
+                    <div class="mb-3">
+                        <label for="file" class="form-label fw-medium">Media File <span class="text-danger">*</span></label>
+                        <input type="file"
+                               class="form-control"
+                               id="file"
+                               name="file"
+                               accept=".png,.jpg,.jpeg,.mp4"
+                               required>
+                        <div class="form-text">Accepted formats: PNG, JPG, JPEG, MP4</div>
+                    </div>
+
+                    {#
+                      Image preview area — hidden by default.
+                      main.js listens for the file input 'change' event and shows
+                      a preview here when an image file is selected.
+                      Video files show a text message instead of a preview.
+                    #}
+                    <div id="preview-container" class="mb-3 d-none">
+                        <label class="form-label fw-medium">Preview</label>
+                        <div class="upload-preview-box">
+                            <img id="image-preview" src="#" alt="Preview" class="upload-preview-img d-none">
+                            <div id="video-preview-msg" class="text-muted d-none">
+                                <i class="bi bi-film fs-3 d-block mb-1"></i>
+                                Video file selected. Preview not available.
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ---- Duration ---- #}
+                    <div class="mb-3">
+                        <label for="duration" class="form-label fw-medium">
+                            Display Duration (seconds) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number"
+                               class="form-control"
+                               id="duration"
+                               name="duration"
+                               value="10"
+                               min="1"
+                               max="600"
+                               required>
+                        <div class="form-text">How many seconds this notice stays on screen per cycle.</div>
+                    </div>
+
+                    {# ---- Priority ---- #}
+                    <div class="mb-3">
+                        <label for="priority" class="form-label fw-medium">
+                            Priority <span class="text-danger">*</span>
+                        </label>
+                        <input type="number"
+                               class="form-control"
+                               id="priority"
+                               name="priority"
+                               value="1"
+                               min="1"
+                               max="10"
+                               required>
+                        <div class="form-text">
+                            Higher number = shown first in the playlist. Range: 1 (low) – 10 (high).
+                        </div>
+                    </div>
+
+                    {# ---- Status ---- #}
+                    <div class="mb-3">
+                        <label for="status" class="form-label fw-medium">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="published" selected>Published (Will display if within valid dates)</option>
+                            <option value="draft">Draft (Will not display on the Pi)</option>
+                        </select>
+                    </div>
+
+                    {# ---- Validity window ---- #}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="valid_from" class="form-label fw-medium">
+                                Valid From <span class="text-danger">*</span>
+                            </label>
+                            <input type="datetime-local"
+                                   class="form-control"
+                                   id="valid_from"
+                                   name="valid_from"
+                                   required>
+                            <div class="form-text">Date and time the notice starts showing.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="valid_until" class="form-label fw-medium">
+                                Valid Until <span class="text-danger">*</span>
+                            </label>
+                            <input type="datetime-local"
+                                   class="form-control"
+                                   id="valid_until"
+                                   name="valid_until"
+                                   required>
+                            <div class="form-text">Date and time the notice stops showing.</div>
+                        </div>
+                    </div>
+
+                    {# ---- Submit / Cancel ---- #}
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1" id="btn-submit-upload">
+                            <i class="bi bi-cloud-upload me-1"></i> Upload and Save
+                        </button>
+                        <a href="{{ url_for('admin.notices') }}" class="btn btn-outline-secondary" id="btn-cancel-upload">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="duration">Display Duration (Seconds)</label>
-            <input type="number" id="duration" name="duration" value="10" min="1" required>
-        </div>
-
-        <div class="form-group">
-            <label for="priority">Priority (Higher = more frequent)</label>
-            <input type="number" id="priority" name="priority" value="1" min="1" required>
-        </div>
-
-        <div class="form-group">
-            <label for="valid_from">Valid From</label>
-            <input type="datetime-local" id="valid_from" name="valid_from" required>
-        </div>
-
-        <div class="form-group">
-            <label for="valid_until">Valid Until</label>
-            <input type="datetime-local" id="valid_until" name="valid_until" required>
-        </div>
-
-        <button type="submit" class="btn-submit">Upload and Save</button>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn-cancel">Cancel and Return</a>
-    </form>
+    </div>
 </div>
+{% endblock %}
 
-</body>
-</html>
+{% block extra_scripts %}
+<script>
+    /**
+     * Image preview before upload.
+     *
+     * When the user selects a file, this script reads it locally using
+     * the FileReader API and displays a preview in the browser — no upload
+     * happens yet.  This gives instant feedback without any server round-trip.
+     */
+    document.getElementById('file').addEventListener('change', function (evt) {
+        const file = evt.target.files[0];  // The first (and only) selected file
+        const container = document.getElementById('preview-container');
+        const imgEl     = document.getElementById('image-preview');
+        const videoMsg  = document.getElementById('video-preview-msg');
+
+        if (!file) {
+            container.classList.add('d-none');   // Hide preview if no file chosen
+            return;
+        }
+
+        container.classList.remove('d-none');    // Make the preview box visible
+
+        if (file.type.startsWith('image/')) {
+            // Image: use FileReader to read the file as a Data URL and show it
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imgEl.src = e.target.result;     // Set the src to the base64 data URL
+                imgEl.classList.remove('d-none');
+                videoMsg.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);          // Triggers reader.onload when done
+        } else {
+            // Video: we can't preview MP4 easily, so show a text message instead
+            imgEl.classList.add('d-none');
+            videoMsg.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %}

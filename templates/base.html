@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {# Page title: child templates override {% block title %} #}
+    <title>{% block title %}Kiosk CMS{% endblock %} — University of Nairobi</title>
+
+    {# Meta description for SEO and browser history readability #}
+    <meta name="description" content="PRJ017 Digital Notice Board & Information Kiosk — CMS Admin Panel">
+
+    {# Bootstrap 5 CSS from CDN — provides the grid, utilities, components #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+          crossorigin="anonymous">
+
+    {# Bootstrap Icons — icon font used for nav icons and badges #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
+
+    {# Google Font: Inter — professional, clean, widely used in institutional UIs #}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    {# Custom CSS — overrides and enhancements on top of Bootstrap #}
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    {# Per-page extra styles: child templates can inject additional <style> or <link> tags #}
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="d-flex">
+
+    {# ================================================================
+       SIDEBAR NAVIGATION
+       ================================================================ #}
+    <nav id="sidebar" class="sidebar d-flex flex-column p-0" aria-label="Main navigation">
+
+        {# Brand / Logo area at the top of the sidebar #}
+        <div class="sidebar-brand d-flex align-items-center justify-content-center py-4 px-3">
+            <i class="bi bi-display me-2 fs-4"></i>
+            <div>
+                <div class="fw-bold">Kiosk CMS</div>
+                <div class="sidebar-brand-sub">University of Nairobi</div>
+            </div>
+        </div>
+
+        {# Divider line between brand and nav links #}
+        <hr class="sidebar-divider mx-3 my-0">
+
+        {# Navigation links — request.endpoint gives the name of the current view function.
+           We use it to add the 'active' class to highlight the current page. #}
+        <ul class="nav flex-column px-3 py-3 flex-grow-1">
+
+            <li class="nav-item">
+                {# active if the endpoint starts with 'admin.dashboard' #}
+                <a class="nav-link sidebar-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}"
+                   href="{{ url_for('admin.dashboard') }}" id="nav-dashboard">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link sidebar-link {% if request.endpoint in ['admin.notices','admin.upload','admin.edit'] %}active{% endif %}"
+                   href="{{ url_for('admin.notices') }}" id="nav-notices">
+                    <i class="bi bi-collection me-2"></i> Notices
+                </a>
+            </li>
+
+            {# Users page is only shown in the sidebar when the logged-in user is a superadmin.
+               current_user is injected into templates automatically by Flask-Login. #}
+            {% if current_user.role == 'superadmin' %}
+            <li class="nav-item">
+                <a class="nav-link sidebar-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+                   href="{{ url_for('admin.users') }}" id="nav-users">
+                    <i class="bi bi-people me-2"></i> Users
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="nav-item">
+                <a class="nav-link sidebar-link {% if request.endpoint == 'admin.status' %}active{% endif %}"
+                   href="{{ url_for('admin.status') }}" id="nav-status">
+                    <i class="bi bi-heart-pulse me-2"></i> System Status
+                </a>
+            </li>
+
+        </ul>
+
+        {# Bottom section: shows who is logged in and a logout button #}
+        <div class="sidebar-footer px-3 py-3">
+            <hr class="sidebar-divider mb-3">
+
+            {# Show the username and a coloured role badge #}
+            <div class="d-flex align-items-center mb-3">
+                <div class="sidebar-avatar me-2">
+                    {# Show the first letter of the username as an avatar #}
+                    {{ current_user.username[0].upper() }}
+                </div>
+                <div>
+                    <div class="sidebar-username">{{ current_user.username }}</div>
+                    {# Role badge: superadmin gets danger (red), editor gets secondary (grey) #}
+                    <div class="mb-1">
+                        <span class="badge {% if current_user.role == 'superadmin' %}bg-danger{% else %}bg-secondary{% endif %} badge-role">
+                            {{ current_user.role }}
+                        </span>
+                    </div>
+                    <a href="{{ url_for('auth.change_password') }}" class="text-decoration-none small text-white-50">
+                        <i class="bi bi-key me-1"></i>Change Password
+                    </a>
+                </div>
+            </div>
+
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100" id="btn-logout">
+                <i class="bi bi-box-arrow-right me-1"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    {# ================================================================
+       MAIN CONTENT AREA — all page content goes here
+       ================================================================ #}
+    <div id="main-content" class="flex-grow-1 d-flex flex-column min-vh-100">
+
+        {# Top header bar with page title and mobile hamburger #}
+        <header class="top-bar d-flex align-items-center px-4 py-3">
+            {# Hamburger button — only visible on small screens, toggles the sidebar #}
+            <button class="btn btn-link sidebar-toggle me-3 d-lg-none p-0" id="sidebarToggle" aria-label="Toggle navigation">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <h1 class="top-bar-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
+        </header>
+
+        {# ---- Flash messages ---- #}
+        {# Flash messages are one-time notifications set in Python with flash().
+           with_categories=True means we also get the category ('success', 'danger', etc.)
+           so we can map them to Bootstrap alert colour classes. #}
+        <div class="px-4 pt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {# Map Flask category names to Bootstrap alert classes #}
+                        {% set alert_class = 'alert-info' %}
+                        {% if category == 'success' %}{% set alert_class = 'alert-success' %}{% endif %}
+                        {% if category == 'danger'  %}{% set alert_class = 'alert-danger'  %}{% endif %}
+                        {% if category == 'warning' %}{% set alert_class = 'alert-warning' %}{% endif %}
+                        {% if category == 'error'   %}{% set alert_class = 'alert-danger'  %}{% endif %}
+                        <div class="alert {{ alert_class }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            {# Dismiss button lets the user close the alert manually #}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {# ---- Page body — child templates fill this block ---- #}
+        <main class="flex-grow-1 px-4 pb-5">
+            {% block content %}{% endblock %}
+        </main>
+
+        {# Footer #}
+        <footer class="cms-footer text-center py-3">
+            PRJ017 &mdash; Digital Notice Board &amp; Information Kiosk &mdash; University of Nairobi
+        </footer>
+    </div>
+
+    {# Dark overlay for mobile sidebar — clicking it closes the sidebar #}
+    <div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>
+
+    {# Bootstrap 5 JS bundle (includes Popper for dropdowns/tooltips) #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmv4p59iDuS1McuRiXXSwfOY0BG+"
+            crossorigin="anonymous"></script>
+
+    {# Custom JavaScript — sidebar toggle and confirmation dialogs #}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    {# Per-page extra scripts: child templates inject page-specific JS here #}
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

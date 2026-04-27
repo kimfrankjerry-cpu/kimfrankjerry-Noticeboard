@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="row mt-3 g-4">
+
+    {# ================================================================
+       LEFT COLUMN — User list table
+       Shows all existing users with their role and a delete button.
+       Only a superadmin sees this page (enforced in admin.users() route).
+    ================================================================ #}
+    <div class="col-12 col-xl-8">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>All Users</h5>
+                <span class="badge bg-secondary">{{ users | length }} account{{ 's' if users|length != 1 }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="users-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th>Change Role</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr id="user-row-{{ user.id }}">
+
+                                {# ---- ID ---- #}
+                                <td class="text-muted">{{ user.id }}</td>
+
+                                {# ---- Username with avatar initial ---- #}
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="sidebar-avatar" style="width:32px;height:32px;font-size:.85rem;">
+                                            {{ user.username[0].upper() }}
+                                        </div>
+                                        <span class="fw-medium">{{ user.username }}</span>
+                                        {# Highlight the currently logged-in user #}
+                                        {% if user.id == current_user.id %}
+                                            <span class="badge bg-info-subtle text-info-emphasis ms-1">You</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                {# ---- Role badge ---- #}
+                                <td>
+                                    {% if user.role == 'superadmin' %}
+                                        <span class="badge bg-danger">superadmin</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">editor</span>
+                                    {% endif %}
+                                </td>
+
+                                {# ---- Creation date ---- #}
+                                <td>
+                                    {% if user.created_at %}
+                                        <small>{{ user.created_at.strftime('%d %b %Y') }}</small>
+                                    {% else %}
+                                        <small class="text-muted">—</small>
+                                    {% endif %}
+                                </td>
+
+                                {# ---- Role change form ---- #}
+                                <td>
+                                    {#
+                                      Cannot change your own role — that could demote yourself
+                                      and lock you out of the admin panel.
+                                    #}
+                                    {% if user.id != current_user.id %}
+                                    <form action="{{ url_for('admin.change_role', id=user.id) }}"
+                                          method="POST"
+                                          class="d-flex align-items-center gap-1">
+                                        <select name="role"
+                                                class="form-select form-select-sm"
+                                                style="width:auto;"
+                                                id="role-select-{{ user.id }}">
+                                            {# selected attribute pre-selects the current role #}
+                                            <option value="editor"
+                                                    {% if user.role == 'editor' %}selected{% endif %}>
+                                                editor
+                                            </option>
+                                            <option value="superadmin"
+                                                    {% if user.role == 'superadmin' %}selected{% endif %}>
+                                                superadmin
+                                            </option>
+                                        </select>
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-primary"
+                                                id="btn-role-{{ user.id }}"
+                                                title="Apply role change">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                        <span class="text-muted small">N/A</span>
+                                    {% endif %}
+                                </td>
+
+                                {# ---- Actions ---- #}
+                                <td class="text-end">
+                                    {% if user.id != current_user.id %}
+                                    <form action="{{ url_for('admin.reset_password', id=user.id) }}"
+                                          method="POST"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Reset password for {{ user.username }}?');">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-warning me-1"
+                                                title="Reset password">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                    </form>
+
+                                    {#
+                                      Deleting your own account is blocked both here in the
+                                      template and server-side in admin.delete_user().
+                                      The confirm-delete-user-form class is picked up by main.js
+                                      for the confirmation dialog.
+                                    #}
+                                    <form action="{{ url_for('admin.delete_user', id=user.id) }}"
+                                          method="POST"
+                                          class="d-inline confirm-delete-user-form">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                id="btn-del-user-{{ user.id }}"
+                                                data-username="{{ user.username }}"
+                                                title="Delete user">
+                                            <i class="bi bi-person-x"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                        {# Your own row has a disabled button instead #}
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                disabled title="Cannot delete yourself">
+                                            <i class="bi bi-person-x"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ================================================================
+       RIGHT COLUMN — Create new user form
+    ================================================================ #}
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Create New User</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST"
+                      action="{{ url_for('admin.create_user') }}"
+                      id="create-user-form">
+
+                    <div class="mb-3">
+                        <label for="new-username" class="form-label fw-medium">Username</label>
+                        <input type="text"
+                               class="form-control"
+                               id="new-username"
+                               name="username"
+                               placeholder="e.g. john.doe"
+                               required
+                               autocomplete="off">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label fw-medium">Password</label>
+                        <input type="password"
+                               class="form-control"
+                               id="new-password"
+                               name="password"
+                               placeholder="Minimum 8 characters recommended"
+                               required
+                               autocomplete="new-password">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="new-role" class="form-label fw-medium">Role</label>
+                        <select class="form-select" id="new-role" name="role">
+                            {# editor is the default — least privilege #}
+                            <option value="editor" selected>editor (can upload/delete notices)</option>
+                            <option value="superadmin">superadmin (full access + user management)</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-shield-exclamation me-1"></i>
+                        Passwords are stored as bcrypt hashes and cannot be recovered.
+                        Make sure the new user remembers their password.
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100" id="btn-create-user">
+                        <i class="bi bi-person-plus me-1"></i> Create User
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>{# end .row #}
+
+{# Password Reset Modal #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    {% if category == 'temp_password' %}
+    {% set temp_pw = message.split(':', 1)[1] %}
+    <div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-key me-2"></i>Password Reset Successful</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="mb-2">The new temporary password is:</p>
+                    <h3 class="font-monospace user-select-all bg-light p-3 border rounded">{{ temp_pw }}</h3>
+                    <p class="text-muted small mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                        Please copy this now. It will not be shown again.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal">I have copied the password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+  {% endfor %}
+{% endwith %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // If the modal exists in the DOM, show it automatically
+    const resetModalEl = document.getElementById('passwordResetModal');
+    if (resetModalEl) {
+        const resetModal = new bootstrap.Modal(resetModalEl);
+        resetModal.show();
+    }
+</script>
+{% endblock %}

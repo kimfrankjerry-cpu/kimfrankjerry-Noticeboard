@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Notices{% endblock %}
+{% block page_title %}Notice Management{% endblock %}
+
+{% block content %}
+{# ================================================================
+   TOP ACTION BAR
+================================================================ #}
+<div class="d-flex align-items-center justify-content-between mt-3 mb-4">
+    <p class="text-muted mb-0">
+        All uploaded notices. Use the status badge to see if a notice is live.
+    </p>
+    <div>
+        {% if current_user.role == 'superadmin' %}
+        <button type="submit" form="bulk-delete-form" class="btn btn-outline-danger me-2" onclick="return confirm('Are you sure you want to delete the selected notices?');">
+            <i class="bi bi-trash-fill me-1"></i> Delete Selected
+        </button>
+        {% endif %}
+        <a href="{{ url_for('admin.upload') }}" class="btn btn-primary" id="btn-upload-new">
+            <i class="bi bi-cloud-upload me-1"></i> Upload New Notice
+        </a>
+    </div>
+</div>
+
+{# ================================================================
+   NOTICES TABLE
+   Columns: thumbnail | title | type | duration | priority |
+            valid_from | valid_until | status | actions
+================================================================ #}
+<form id="bulk-delete-form" method="POST" action="{{ url_for('admin.bulk_delete') }}">
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="notices-table">
+                <thead class="table-light">
+                    <tr>
+                        {% if current_user.role == 'superadmin' %}
+                        <th style="width:40px"><input class="form-check-input" type="checkbox" id="select-all"></th>
+                        {% endif %}
+                        <th style="width:70px">Preview</th>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Duration</th>
+                        <th>Priority</th>
+                        <th>Valid From</th>
+                        <th>Valid Until</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notice in notices %}
+                    {# Compute this notice's status so we can render the correct badge colour #}
+                    {% set status = notice_status(notice) %}
+
+                    <tr id="notice-row-{{ notice.id }}">
+
+                        {% if current_user.role == 'superadmin' %}
+                        <td><input class="form-check-input notice-checkbox" type="checkbox" name="notice_ids" value="{{ notice.id }}"></td>
+                        {% endif %}
+
+                        {# ---- Thumbnail preview ---- #}
+                        <td>
+                            {% if 'image' in notice.content_type %}
+                                {#
+                                  /api/media/<filename> serves the file from UPLOAD_FOLDER.
+                                  We use the API endpoint (which needs a token) — but here
+                                  in the browser we are already authenticated via Flask-Login,
+                                  so we use a separate /media/thumb route.
+                                  Since we don't have a separate thumbnail route, serve the
+                                  full file via a dedicated admin static route if it exists,
+                                  or simply show an icon for now.
+                                  
+                                  IMPLEMENTATION NOTE:  We serve previews via the
+                                  /admin/preview/<filename> route defined below.
+                                #}
+                                <img src="{{ url_for('admin.preview', filename=notice.filename) }}"
+                                     alt="{{ notice.title }}"
+                                     class="notice-thumb"
+                                     loading="lazy">
+                            {% else %}
+                                {# Video — show a film icon placeholder instead of the full video #}
+                                <div class="notice-thumb-placeholder">
+                                    <i class="bi bi-film fs-4 text-danger"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        {# ---- Title ---- #}
+                        <td>
+                            <div class="fw-medium">{{ notice.title }}</div>
+                            <small class="text-muted">{{ notice.filename }}</small>
+                        </td>
+
+                        {# ---- Content type with icon ---- #}
+                        <td>
+                            {% if 'image' in notice.content_type %}
+                                <i class="bi bi-image text-primary me-1"></i>
+                                <span class="badge bg-primary-subtle text-primary-emphasis">Image</span>
+                            {% else %}
+                                <i class="bi bi-film text-danger me-1"></i>
+                                <span class="badge bg-danger-subtle text-danger-emphasis">Video</span>
+                            {% endif %}
+                        </td>
+
+                        {# ---- Duration in seconds ---- #}
+                        <td>{{ notice.duration }}s</td>
+
+                        {# ---- Priority — higher number = more important ---- #}
+                        <td>
+                            <span class="badge bg-secondary">{{ notice.priority }}</span>
+                        </td>
+
+                        {# ---- Valid From date ---- #}
+                        <td>
+                            <small>{{ notice.valid_from.strftime('%d %b %Y') }}</small><br>
+                            <small class="text-muted">{{ notice.valid_from.strftime('%H:%M') }}</small>
+                        </td>
+
+                        {# ---- Valid Until date ---- #}
+                        <td>
+                            <small>{{ notice.valid_until.strftime('%d %b %Y') }}</small><br>
+                            <small class="text-muted">{{ notice.valid_until.strftime('%H:%M') }}</small>
+                        </td>
+
+                        {# ---- Status badge ---- #}
+                        <td>
+                            {% if notice.status == 'draft' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-file-earmark me-1"></i>Draft
+                                </span>
+                            {% elif status == 'active' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-broadcast me-1"></i>Active
+                                </span>
+                            {% elif status == 'scheduled' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-calendar me-1"></i>Scheduled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-archive me-1"></i>Expired
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        {# ---- Edit / Delete action buttons ---- #}
+                        <td class="text-end">
+                            <a href="{{ url_for('admin.edit', id=notice.id) }}"
+                               class="btn btn-sm btn-outline-primary me-1"
+                               id="btn-edit-{{ notice.id }}"
+                               title="Edit notice">
+                                <i class="bi bi-pencil-square me-1"></i>Edit
+                            </a>
+
+                            {#
+                              Delete uses a POST form.
+                              The JS in main.js intercepts the submit event,
+                              shows a confirmation dialog, and only submits
+                              if the user confirms.
+                              data-notice-title is read by main.js to personalise
+                              the confirmation message.
+                            #}
+                            <form action="{{ url_for('admin.delete', id=notice.id) }}"
+                                  method="POST"
+                                  class="d-inline confirm-delete-form">
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                        id="btn-delete-{{ notice.id }}"
+                                        data-notice-title="{{ notice.title }}"
+                                        title="Delete notice">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    {% else %}
+                    {# Rendered when the notices list is empty #}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No notices found. <a href="{{ url_for('admin.upload') }}">Upload your first notice.</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</form>
+
+{# Pagination Controls #}
+{% if pagination.pages > 1 %}
+<nav aria-label="Notices pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.notices', page=pagination.prev_num) }}">Previous</a>
+        </li>
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.notices', page=page_num) }}">{{ page_num }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.notices', page=pagination.next_num) }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.notice-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        });
+    }
+</script>
+{% endblock %}

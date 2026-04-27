@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}System Status{% endblock %}
+{% block page_title %}System Status{% endblock %}
+
+{#
+  Auto-refresh: this page reloads itself every 30 seconds so the stats
+  stay up to date without the admin having to manually refresh.
+  The <meta http-equiv="refresh"> tag is the simplest reliable way to do
+  this without requiring JavaScript.
+  content="30" means refresh after 30 seconds.
+#}
+{% block extra_head %}
+<meta http-equiv="refresh" content="30">
+{% endblock %}
+
+{% block content %}
+
+{# ================================================================
+   INFO BANNER — explains the auto-refresh behaviour
+================================================================ #}
+<div class="alert alert-info d-flex align-items-center mt-3 mb-4" role="alert">
+    <i class="bi bi-arrow-clockwise me-2 fs-5"></i>
+    <div>
+        This page auto-refreshes every <strong>30 seconds</strong>.
+        Maps to <strong>FR-10</strong>: System Status Monitoring.
+    </div>
+</div>
+
+{# ================================================================
+   STATUS CARDS — four key health metrics in a responsive grid
+================================================================ #}
+<div class="row g-4">
+
+    {# ---- Last Sync ---- #}
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card status-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="status-icon mb-3">
+                    <i class="bi bi-wifi text-success fs-1"></i>
+                </div>
+                <h6 class="text-muted text-uppercase small fw-semibold mb-1">Last Pi Sync</h6>
+                <div class="status-value fs-6 fw-bold">{{ last_sync }}</div>
+                <div class="form-text mt-1">Timestamp of most recent successful Raspberry Pi sync</div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- File Count ---- #}
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card status-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="status-icon mb-3">
+                    <i class="bi bi-files text-primary fs-1"></i>
+                </div>
+                <h6 class="text-muted text-uppercase small fw-semibold mb-1">Media Files</h6>
+                <div class="status-value display-5 fw-bold text-primary">{{ file_count }}</div>
+                <div class="form-text mt-1">Files stored in the media upload folder</div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Storage Used ---- #}
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card status-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="status-icon mb-3">
+                    <i class="bi bi-hdd text-warning fs-1"></i>
+                </div>
+                <h6 class="text-muted text-uppercase small fw-semibold mb-1">Storage Used</h6>
+                <div class="status-value display-5 fw-bold text-warning">{{ storage_mb }} <small class="fs-6">MB</small></div>
+                <div class="form-text mt-1">Total size of all media files on disk</div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Server Uptime ---- #}
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card status-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="status-icon mb-3">
+                    <i class="bi bi-clock-history text-success fs-1"></i>
+                </div>
+                <h6 class="text-muted text-uppercase small fw-semibold mb-1">Server Uptime</h6>
+                <div class="status-value fs-4 fw-bold text-success">{{ uptime }}</div>
+                <div class="form-text mt-1">Time since Flask application started</div>
+            </div>
+        </div>
+    </div>
+
+</div>{# end .row (status cards) #}
+
+
+{# ================================================================
+   PI SYNC AGENT INSTRUCTIONS — helps the student configure the Pi
+================================================================ #}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Sync Agent Configuration</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            The Raspberry Pi sync agent must send a bearer token with every request.
+            Configure the Pi agent to use the following endpoint and token:
+        </p>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-medium small text-muted text-uppercase">Manifest Endpoint</label>
+                <code class="d-block p-2 bg-light rounded">GET /api/manifest</code>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-medium small text-muted text-uppercase">Media Download</label>
+                <code class="d-block p-2 bg-light rounded">GET /api/media/&lt;filename&gt;</code>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-medium small text-muted text-uppercase">Authorization Header</label>
+                <code class="d-block p-2 bg-light rounded">Authorization: Bearer &lt;API_TOKEN from config.py&gt;</code>
+            </div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0 py-2 small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            The sync agent writes to <code>sync_log.txt</code> in the application root after each
+            successful sync. The "Last Pi Sync" metric above reads the last line of that file.
+        </div>
+    </div>
+</div>
+
+{# ================================================================
+   AUDIT LOG
+================================================================ #}
+<div class="card mt-4 mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Recent Audit Logs</h5>
+        <span class="badge bg-secondary">Last 20</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>User</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td class="text-muted"><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                        <td class="fw-medium">
+                            <i class="bi bi-person me-1 text-secondary"></i>
+                            {{ log.user.username if log.user else 'System' }}
+                        </td>
+                        <td>{{ log.action }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            No audit logs found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

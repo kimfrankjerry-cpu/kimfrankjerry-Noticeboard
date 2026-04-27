@@ -1,0 +1,344 @@
+/*
+ * static/css/style.css
+ * ====================
+ * Custom stylesheet for the PRJ017 Kiosk CMS admin panel.
+ *
+ * This file contains:
+ *   1. CSS custom properties (variables) — the design token system
+ *   2. Sidebar layout styles
+ *   3. Stat / summary cards
+ *   4. Notice table enhancements (thumbnails)
+ *   5. Upload preview box
+ *   6. Status page card styles
+ *   7. Utility overrides
+ *
+ * Bootstrap 5 handles the grid, buttons, badges, alerts, and tables.
+ * This file only overrides or extends — it does not duplicate Bootstrap.
+ */
+
+/* ================================================================
+   1. DESIGN TOKENS — CSS Custom Properties
+   All colours, sizes, and shadows are defined here so they can be
+   changed in one place if the university branding changes.
+================================================================ */
+:root {
+    --sidebar-width: 260px;           /* Width of the left navigation column */
+    --sidebar-bg:    #0f2d6b;         /* University of Nairobi deep blue */
+    --sidebar-text:  rgba(255,255,255,.85);
+    --sidebar-active-bg: rgba(255,255,255,.15);
+    --sidebar-hover-bg:  rgba(255,255,255,.08);
+
+    --topbar-bg:     #ffffff;
+    --topbar-border: #e9ecef;
+    --topbar-height: 64px;
+
+    --body-bg:       #f0f4f8;         /* Slightly blue-tinted off-white background */
+    --card-shadow:   0 2px 12px rgba(0,0,0,.07);
+
+    --accent:        #1a56c4;         /* Primary blue — buttons, links */
+    --success:       #198754;
+    --warning:       #ffc107;
+    --danger:        #dc3545;
+
+    --font-family:   'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ================================================================
+   2. GLOBAL BASE STYLES
+================================================================ */
+body {
+    font-family: var(--font-family);
+    background-color: var(--body-bg);
+    color: #212529;
+    /* d-flex is set in HTML, but also set here as a safety fallback */
+    display: flex;
+}
+
+/* All Bootstrap cards get a consistent shadow */
+.card {
+    border: none;
+    box-shadow: var(--card-shadow);
+    border-radius: 12px;
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid #e9ecef;
+    padding: .875rem 1.25rem;
+}
+
+/* ================================================================
+   3. SIDEBAR NAVIGATION
+================================================================ */
+.sidebar {
+    width: var(--sidebar-width);
+    min-height: 100vh;
+    background: var(--sidebar-bg);
+    /* gradient overlay adds depth */
+    background-image: linear-gradient(180deg, #0f2d6b 0%, #162f7a 60%, #1a3a8f 100%);
+    color: var(--sidebar-text);
+    position: sticky;      /* Sidebar stays in view while scrolling the main content */
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;        /* Prevent sidebar from shrinking when the window narrows */
+    z-index: 1040;
+    transition: transform .3s ease; /* Smooth slide-in/out on mobile */
+}
+
+/* Brand area at the top of the sidebar */
+.sidebar-brand {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.sidebar-brand-sub {
+    font-size: .7rem;
+    font-weight: 400;
+    opacity: .65;
+    letter-spacing: .03em;
+}
+
+/* Thin horizontal rule between sections */
+.sidebar-divider {
+    border-color: rgba(255,255,255,.12);
+}
+
+/* Individual nav links */
+.sidebar-link {
+    color: var(--sidebar-text);
+    border-radius: 8px;
+    padding: .65rem 1rem;
+    font-size: .9rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.sidebar-link:hover {
+    background: var(--sidebar-hover-bg);
+    color: #ffffff;
+}
+
+/* Active link — currently selected page */
+.sidebar-link.active {
+    background: var(--sidebar-active-bg);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Avatar circle — shows the first letter of the username */
+.sidebar-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    color: #fff;
+    font-weight: 700;
+    font-size: .95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;        /* Do not shrink if the username is long */
+}
+
+.sidebar-username {
+    font-size: .875rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.badge-role {
+    font-size: .65rem;
+    letter-spacing: .04em;
+}
+
+/* ================================================================
+   4. TOP BAR
+================================================================ */
+.top-bar {
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    height: var(--topbar-height);
+    position: sticky;
+    top: 0;
+    z-index: 1030;         /* Below the sidebar overlay but above page content */
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+.top-bar-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+/* Hamburger toggle button visible only on mobile (Bootstrap hides it on lg+) */
+.sidebar-toggle {
+    color: #495057;
+    text-decoration: none;
+}
+
+/* ================================================================
+   5. MAIN CONTENT AREA
+================================================================ */
+#main-content {
+    background: var(--body-bg);
+    min-width: 0;          /* Allows the flex child to shrink below its content size */
+}
+
+main {
+    padding-top: 1.25rem;
+}
+
+/* ================================================================
+   6. STAT / SUMMARY CARDS (Dashboard)
+================================================================ */
+.stat-card {
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    box-shadow: var(--card-shadow);
+    border: none;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.11);
+}
+
+/* Colour variants for each card type */
+.stat-card-total    { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff; }
+.stat-card-active   { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; }
+.stat-card-scheduled{ background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: #fff; }
+.stat-card-expired  { background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%); color: #fff; }
+
+.stat-card-icon {
+    font-size: 2rem;       /* Large icon on the left of the card */
+    opacity: .85;
+}
+
+.stat-card-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-card-label {
+    font-size: .8rem;
+    font-weight: 500;
+    opacity: .85;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-top: .25rem;
+}
+
+/* ================================================================
+   7. NOTICE THUMBNAIL PREVIEW (Notices table)
+================================================================ */
+.notice-thumb {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;     /* Crop to fit the cell without distortion */
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+/* Placeholder shown for video files that can't be previewed */
+.notice-thumb-placeholder {
+    width: 60px;
+    height: 45px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ================================================================
+   8. UPLOAD PREVIEW BOX
+================================================================ */
+.upload-preview-box {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-preview-img {
+    max-width: 100%;
+    max-height: 280px;
+    border-radius: 8px;
+    object-fit: contain;   /* Show the full image without cropping */
+}
+
+/* ================================================================
+   9. STATUS PAGE CARDS
+================================================================ */
+.status-card {
+    border-radius: 14px;
+    transition: transform .15s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-3px);
+}
+
+.status-value {
+    word-break: break-all;  /* Prevent long sync timestamps from overflowing the card */
+}
+
+/* ================================================================
+   10. FOOTER
+================================================================ */
+.cms-footer {
+    background: #fff;
+    border-top: 1px solid #e9ecef;
+    color: #6c757d;
+    font-size: .8rem;
+}
+
+/* ================================================================
+   11. MOBILE SIDEBAR OVERLAY
+   On small screens, a dark overlay appears behind the open sidebar.
+   Clicking it closes the sidebar.
+================================================================ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;              /* Shorthand for top:0; right:0; bottom:0; left:0 */
+    background: rgba(0,0,0,.5);
+    z-index: 1039;         /* Just below the sidebar (z-index 1040) */
+}
+
+/* Class added by JS when the sidebar is open on mobile */
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* On mobile: hide the sidebar off-screen to the left by default */
+@media (max-width: 991.98px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);  /* Hidden off-screen */
+        z-index: 1040;
+    }
+
+    /* When JS adds the 'open' class, slide it back in */
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}

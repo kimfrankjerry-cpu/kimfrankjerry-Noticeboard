@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Notice{% endblock %}
+{% block page_title %}Edit Notice{% endblock %}
+
+{% block content %}
+<div class="row mt-3 justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-6">
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    Editing: <span class="text-primary">{{ notice.title }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+
+                {#
+                  The form pre-fills all fields with the current values from the
+                  'notice' object passed from admin.edit().
+                  The route handles GET (show this form) and POST (save changes).
+                  enctype is NOT needed here — no file is uploaded when editing.
+                #}
+                <form method="POST"
+                      action="{{ url_for('admin.edit', id=notice.id) }}"
+                      id="edit-form">
+
+                    {# ---- Title ---- #}
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-medium">Notice Title</label>
+                        {# value="{{ notice.title }}" pre-fills the field with the stored title #}
+                        <input type="text"
+                               class="form-control"
+                               id="title"
+                               name="title"
+                               value="{{ notice.title }}"
+                               required>
+                    </div>
+
+                    {# ---- Current file (read-only info, cannot be changed here) ---- #}
+                    <div class="mb-3">
+                        <label class="form-label fw-medium text-muted">Current File</label>
+                        <div class="form-control bg-light text-muted" style="cursor:not-allowed;">
+                            <i class="bi bi-paperclip me-1"></i>{{ notice.filename }}
+                            <small class="ms-2 text-secondary">(to change the file, delete this notice and re-upload)</small>
+                        </div>
+                    </div>
+
+                    {# ---- Duration ---- #}
+                    <div class="mb-3">
+                        <label for="duration" class="form-label fw-medium">Display Duration (seconds)</label>
+                        {# value="{{ notice.duration }}" inserts the stored number #}
+                        <input type="number"
+                               class="form-control"
+                               id="duration"
+                               name="duration"
+                               value="{{ notice.duration }}"
+                               min="1"
+                               max="600"
+                               required>
+                    </div>
+
+                    {# ---- Priority ---- #}
+                    <div class="mb-3">
+                        <label for="priority" class="form-label fw-medium">Priority</label>
+                        <input type="number"
+                               class="form-control"
+                               id="priority"
+                               name="priority"
+                               value="{{ notice.priority }}"
+                               min="1"
+                               max="10"
+                               required>
+                        <div class="form-text">Range 1 (low) – 10 (high). Higher = shown earlier in playlist.</div>
+                    </div>
+
+                    {# ---- Status ---- #}
+                    <div class="mb-3">
+                        <label for="status" class="form-label fw-medium">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="published" {% if notice.status == 'published' %}selected{% endif %}>Published</option>
+                            <option value="draft" {% if notice.status == 'draft' %}selected{% endif %}>Draft</option>
+                        </select>
+                    </div>
+
+                    {# ---- Validity window ---- #}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="valid_from" class="form-label fw-medium">Valid From</label>
+                            {#
+                              strftime('%Y-%m-%dT%H:%M') formats the stored datetime into the exact
+                              string format that the HTML datetime-local input expects.
+                              Example: "2025-09-01T09:00"
+                            #}
+                            <input type="datetime-local"
+                                   class="form-control"
+                                   id="valid_from"
+                                   name="valid_from"
+                                   value="{{ notice.valid_from.strftime('%Y-%m-%dT%H:%M') }}"
+                                   required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="valid_until" class="form-label fw-medium">Valid Until</label>
+                            <input type="datetime-local"
+                                   class="form-control"
+                                   id="valid_until"
+                                   name="valid_until"
+                                   value="{{ notice.valid_until.strftime('%Y-%m-%dT%H:%M') }}"
+                                   required>
+                        </div>
+                    </div>
+
+                    {# ---- Submit / Cancel ---- #}
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-success flex-grow-1" id="btn-save-edit">
+                            <i class="bi bi-check2-circle me-1"></i> Save Changes
+                        </button>
+                        <a href="{{ url_for('admin.notices') }}"
+                           class="btn btn-outline-secondary"
+                           id="btn-cancel-edit">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
