@@ -206,6 +206,18 @@ def upload():
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)  # Write the bytes to the Pi's SD card / SSD
 
+        # --- Auto-resize massive images to fit within Kiosk max resolution --- #
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            from PIL import Image
+            try:
+                img = Image.open(file_path)
+                # If image is larger than 1920x1080, resize it proportionally
+                max_size = (1920, 1080)
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                img.save(file_path)
+            except Exception as e:
+                pass  # If resizing fails, just continue with original file
+
         # ---- Save the record to the database ---- #
         new_notice = Notice(
             title        = title,
