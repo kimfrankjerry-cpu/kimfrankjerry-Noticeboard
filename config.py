@@ -37,4 +37,4 @@ class Config:
     # the Authorization header:   Authorization: Bearer <API_TOKEN>
     # Change this to a long random string in production.
     # ------------------------------------------------------------------ #
-    API_TOKEN = os.environ.get('API_TOKEN', 'change-this-api-token')
+    API_TOKEN = os.environ.get('API_TOKEN', '3dbebc76-46e7-4bdb-a619-e0179124986d')
