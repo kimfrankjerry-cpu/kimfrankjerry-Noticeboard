@@ -32,6 +32,9 @@ class Config:
     # executable files or other dangerous types
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4'}
 
+    # Maximum permitted file size for media uploads (set to 50 MB)
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+
     # ------------------------------------------------------------------ #
     # API Bearer token — the Raspberry Pi sync agent must include this in
     # the Authorization header:   Authorization: Bearer <API_TOKEN>
