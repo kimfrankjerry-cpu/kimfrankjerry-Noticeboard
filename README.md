@@ -8,6 +8,7 @@
 ## Table of Contents
 
 1. [Project Description](#1-project-description)
+   - [System Architecture](#system-architecture)
 2. [Key Features](#2-key-features)
 3. [Prerequisites](#3-prerequisites)
 4. [Installation & Setup](#4-installation--setup)
@@ -23,6 +24,10 @@
 ## 1. Project Description
 
 The **Smart Kiosk CMS** is the server-side backbone of a two-tier digital notice board system. Administrators interact with a web-based dashboard (served by this Flask app) to upload, schedule, and manage multimedia content (images and videos). A Raspberry Pi client running a Kivy display application periodically polls this server's REST API to synchronise its local media library and display the correct notices in real time.
+
+## System Architecture
+
+![System Architecture Diagram](docs/architecture.png)
 
 > **Note:** This repository contains *only* the Flask backend server. The Raspberry Pi Kivy display frontend is maintained in a separate repository.
 
