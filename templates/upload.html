@@ -38,9 +38,9 @@
                                class="form-control"
                                id="file"
                                name="file"
-                               accept=".png,.jpg,.jpeg,.mp4"
+                               accept=".png,.jpg,.jpeg,.mp4,.pdf"
                                required>
-                        <div class="form-text">Accepted formats: PNG, JPG, JPEG, MP4</div>
+                        <div class="form-text">Accepted formats: PNG, JPG, JPEG, MP4, PDF &mdash; PDFs are automatically converted to PNG.</div>
                     </div>
 
                     {#
@@ -49,13 +49,17 @@
                       a preview here when an image file is selected.
                       Video files show a text message instead of a preview.
                     #}
-                    <div id="preview-container" class="mb-3 d-none">
+                        <div id="preview-container" class="mb-3 d-none">
                         <label class="form-label fw-medium">Preview</label>
                         <div class="upload-preview-box">
                             <img id="image-preview" src="#" alt="Preview" class="upload-preview-img d-none">
                             <div id="video-preview-msg" class="text-muted d-none">
                                 <i class="bi bi-film fs-3 d-block mb-1"></i>
                                 Video file selected. Preview not available.
+                            </div>
+                            <div id="pdf-preview-msg" class="text-muted d-none">
+                                <i class="bi bi-file-earmark-pdf fs-3 d-block mb-1"></i>
+                                PDF selected &mdash; the server will convert page 1 to a PNG automatically.
                             </div>
                         </div>
                     </div>
@@ -157,30 +161,35 @@
      * happens yet.  This gives instant feedback without any server round-trip.
      */
     document.getElementById('file').addEventListener('change', function (evt) {
-        const file = evt.target.files[0];  // The first (and only) selected file
+        const file = evt.target.files[0];
         const container = document.getElementById('preview-container');
         const imgEl     = document.getElementById('image-preview');
         const videoMsg  = document.getElementById('video-preview-msg');
+        const pdfMsg    = document.getElementById('pdf-preview-msg');
+
+        // Reset all panels
+        imgEl.classList.add('d-none');
+        videoMsg.classList.add('d-none');
+        pdfMsg.classList.add('d-none');
 
         if (!file) {
-            container.classList.add('d-none');   // Hide preview if no file chosen
+            container.classList.add('d-none');
             return;
         }
 
-        container.classList.remove('d-none');    // Make the preview box visible
+        container.classList.remove('d-none');
 
         if (file.type.startsWith('image/')) {
-            // Image: use FileReader to read the file as a Data URL and show it
             const reader = new FileReader();
             reader.onload = function (e) {
-                imgEl.src = e.target.result;     // Set the src to the base64 data URL
+                imgEl.src = e.target.result;
                 imgEl.classList.remove('d-none');
-                videoMsg.classList.add('d-none');
             };
-            reader.readAsDataURL(file);          // Triggers reader.onload when done
+            reader.readAsDataURL(file);
+        } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            pdfMsg.classList.remove('d-none');
         } else {
-            // Video: we can't preview MP4 easily, so show a text message instead
-            imgEl.classList.add('d-none');
+            // MP4 / other video
             videoMsg.classList.remove('d-none');
         }
     });

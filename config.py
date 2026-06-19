@@ -30,7 +30,7 @@ class Config:
 
     # Only these file extensions are accepted on upload — prevents uploading
     # executable files or other dangerous types
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4'}
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4', 'pdf'}
 
     # Maximum permitted file size for media uploads (set to 50 MB)
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024

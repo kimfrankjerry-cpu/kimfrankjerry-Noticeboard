@@ -193,7 +193,7 @@ def upload():
             return redirect(request.url)
 
         if not allowed_file(file.filename):
-            flash('File type not allowed. Upload PNG, JPG, JPEG, or MP4 only.', 'danger')
+            flash('File type not allowed. Upload PNG, JPG, JPEG, MP4, or PDF only.', 'danger')
             return redirect(request.url)
 
         # ---- Save the file to disk ---- #
@@ -205,6 +205,34 @@ def upload():
 
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)  # Write the bytes to the Pi's SD card / SSD
+
+        # ---- PDF → PNG conversion ---- #
+        # The Kivy frontend cannot render PDFs natively, so we rasterize the
+        # first page of the PDF into a high-quality PNG before saving.
+        # PyMuPDF (fitz) ships prebuilt wheels for Windows, Linux, and ARM —
+        # no system-level dependencies (e.g. Poppler) are required.
+        if filename.lower().endswith('.pdf'):
+            try:
+                import fitz  # PyMuPDF
+                pdf_path = file_path
+                # Build the output PNG filename by replacing the .pdf extension
+                png_filename = os.path.splitext(filename)[0] + '.png'
+                png_path = os.path.join(current_app.config['UPLOAD_FOLDER'], png_filename)
+
+                doc = fitz.open(pdf_path)          # Open the PDF
+                page = doc[0]                       # Rasterize only the first page
+                # 2× zoom matrix → ~144 DPI, crisp on a 1920×1080 display
+                mat = fitz.Matrix(2, 2)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                pix.save(png_path)                  # Write the PNG to disk
+                doc.close()
+
+                os.remove(pdf_path)                 # Delete the raw PDF — not needed
+                filename = png_filename             # Switch to the converted PNG name
+                file_path = png_path
+            except Exception as e:
+                flash(f'PDF conversion failed: {e}', 'danger')
+                return redirect(request.url)
 
         # --- Auto-resize massive images to fit within Kiosk max resolution --- #
         if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -219,10 +247,20 @@ def upload():
                 pass  # If resizing fails, just continue with original file
 
         # ---- Save the record to the database ---- #
+        # Determine the correct MIME type to store.
+        # If a PDF was converted to PNG, file.mimetype would still be
+        # 'application/pdf', so we derive it from the final saved filename instead.
+        if filename.lower().endswith('.png'):
+            saved_mimetype = 'image/png'
+        elif filename.lower().endswith(('.jpg', '.jpeg')):
+            saved_mimetype = 'image/jpeg'
+        else:
+            saved_mimetype = file.mimetype  # mp4 etc. unchanged
+
         new_notice = Notice(
             title        = title,
             filename     = filename,
-            content_type = file.mimetype,  # e.g. "image/jpeg" or "video/mp4"
+            content_type = saved_mimetype,
             duration     = duration,
             priority     = priority,
             valid_from   = valid_from,

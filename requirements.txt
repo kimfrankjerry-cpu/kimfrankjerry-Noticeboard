@@ -4,3 +4,4 @@ Flask-Login==0.6.3
 Flask-Bcrypt==1.0.1
 Pillow==11.2.1
 python-dotenv==1.1.1
+PyMuPDF==1.27.2.3
